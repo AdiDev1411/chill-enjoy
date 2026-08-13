@@ -2,6 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ChevronDown,
+  ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   Expand,
   Headphones,
   ListMusic,
@@ -14,6 +18,7 @@ import {
   SkipForward,
   Volume2,
   VolumeX,
+  X,
 } from "lucide-react";
 
 type Song = {
@@ -45,33 +50,48 @@ export default function Home() {
   const [duration, setDuration] = useState(0);
 
   const [volume, setVolume] = useState(0.8);
+
   const [loading, setLoading] = useState(true);
+
+  // Playlist visibility
+  const [showPlaylist, setShowPlaylist] = useState(true);
+
+  // Mobile playlist
+  const [mobilePlaylist, setMobilePlaylist] = useState(false);
 
   const currentSong =
     currentIndex >= 0 ? songs[currentIndex] : null;
 
-  // -----------------------------------------
-  // Load songs from Next.js API
-  // -----------------------------------------
+  // --------------------------------------------------
+  // LOAD SONGS
+  // --------------------------------------------------
 
   useEffect(() => {
-    fetch("/api/songs")
-      .then((res) => res.json())
-      .then((data: Song[]) => {
+    const loadSongs = async () => {
+      try {
+        const response = await fetch("/api/songs");
+
+        if (!response.ok) {
+          throw new Error("Failed to load songs");
+        }
+
+        const data: Song[] = await response.json();
+
         setSongs(data);
-      })
-      .catch((error) => {
-        console.error("Failed to load songs:", error);
+      } catch (error) {
+        console.error("Song loading error:", error);
         setSongs([]);
-      })
-      .finally(() => {
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+
+    loadSongs();
   }, []);
 
-  // -----------------------------------------
-  // Play Song
-  // -----------------------------------------
+  // --------------------------------------------------
+  // PLAY SONG
+  // --------------------------------------------------
 
   const playSong = useCallback(
     async (index: number) => {
@@ -82,33 +102,35 @@ export default function Home() {
 
       setCurrentIndex(index);
 
-      // IMPORTANT:
-      // Play directly from Cloudflare R2
       audio.src = song.url;
 
       audio.load();
 
+      setCurrentTime(0);
+      setDuration(0);
+
       try {
         await audio.play();
+
         setIsPlaying(true);
       } catch (error) {
-        console.error("Audio playback failed:", error);
+        console.error("Playback error:", error);
+
         setIsPlaying(false);
       }
     },
     [songs]
   );
 
-  // -----------------------------------------
-  // Play / Pause
-  // -----------------------------------------
+  // --------------------------------------------------
+  // PLAY / PAUSE
+  // --------------------------------------------------
 
   const togglePlay = async () => {
     const audio = audioRef.current;
 
     if (!audio) return;
 
-    // No song selected
     if (currentIndex === -1) {
       if (songs.length > 0) {
         await playSong(0);
@@ -120,32 +142,54 @@ export default function Home() {
     if (audio.paused) {
       try {
         await audio.play();
+
         setIsPlaying(true);
       } catch (error) {
         console.error(error);
-        setIsPlaying(false);
       }
     } else {
       audio.pause();
+
       setIsPlaying(false);
     }
   };
 
-  // -----------------------------------------
-  // Next Song
-  // -----------------------------------------
+  // --------------------------------------------------
+  // RANDOM SHUFFLE
+  // --------------------------------------------------
+
+  const getRandomSongIndex = () => {
+    if (songs.length <= 1) return 0;
+
+    let randomIndex = currentIndex;
+
+    // Keep generating until a different song is selected
+    while (randomIndex === currentIndex) {
+      randomIndex = Math.floor(
+        Math.random() * songs.length
+      );
+    }
+
+    return randomIndex;
+  };
+
+  // --------------------------------------------------
+  // NEXT SONG
+  // --------------------------------------------------
 
   const nextSong = useCallback(() => {
     if (!songs.length) return;
 
-    let nextIndex = currentIndex + 1;
+    let nextIndex;
 
     if (isShuffle) {
-      nextIndex = Math.floor(
-        Math.random() * songs.length
-      );
-    } else if (nextIndex >= songs.length) {
-      nextIndex = 0;
+      nextIndex = getRandomSongIndex();
+    } else {
+      nextIndex = currentIndex + 1;
+
+      if (nextIndex >= songs.length) {
+        nextIndex = 0;
+      }
     }
 
     playSong(nextIndex);
@@ -156,19 +200,19 @@ export default function Home() {
     songs,
   ]);
 
-  // -----------------------------------------
-  // Previous Song
-  // -----------------------------------------
+  // --------------------------------------------------
+  // PREVIOUS SONG
+  // --------------------------------------------------
 
   const previousSong = () => {
     const audio = audioRef.current;
 
     if (!audio || !songs.length) return;
 
-    // If song has played for more than 3 sec,
-    // restart current song.
+    // Restart current song if already played
     if (audio.currentTime > 3) {
       audio.currentTime = 0;
+
       return;
     }
 
@@ -181,32 +225,32 @@ export default function Home() {
     playSong(previousIndex);
   };
 
-  // -----------------------------------------
-  // Audio Events
-  // -----------------------------------------
+  // --------------------------------------------------
+  // AUDIO EVENTS
+  // --------------------------------------------------
 
   useEffect(() => {
     const audio = audioRef.current;
 
     if (!audio) return;
 
-    const onTimeUpdate = () => {
+    const handleTimeUpdate = () => {
       setCurrentTime(audio.currentTime);
     };
 
-    const onLoadedMetadata = () => {
+    const handleLoadedMetadata = () => {
       setDuration(audio.duration);
     };
 
-    const onPlay = () => {
+    const handlePlay = () => {
       setIsPlaying(true);
     };
 
-    const onPause = () => {
+    const handlePause = () => {
       setIsPlaying(false);
     };
 
-    const onEnded = () => {
+    const handleEnded = () => {
       if (isRepeat) {
         audio.currentTime = 0;
 
@@ -218,60 +262,60 @@ export default function Home() {
 
     audio.addEventListener(
       "timeupdate",
-      onTimeUpdate
+      handleTimeUpdate
     );
 
     audio.addEventListener(
       "loadedmetadata",
-      onLoadedMetadata
+      handleLoadedMetadata
     );
 
     audio.addEventListener(
       "play",
-      onPlay
+      handlePlay
     );
 
     audio.addEventListener(
       "pause",
-      onPause
+      handlePause
     );
 
     audio.addEventListener(
       "ended",
-      onEnded
+      handleEnded
     );
 
     return () => {
       audio.removeEventListener(
         "timeupdate",
-        onTimeUpdate
+        handleTimeUpdate
       );
 
       audio.removeEventListener(
         "loadedmetadata",
-        onLoadedMetadata
+        handleLoadedMetadata
       );
 
       audio.removeEventListener(
         "play",
-        onPlay
+        handlePlay
       );
 
       audio.removeEventListener(
         "pause",
-        onPause
+        handlePause
       );
 
       audio.removeEventListener(
         "ended",
-        onEnded
+        handleEnded
       );
     };
   }, [isRepeat, nextSong]);
 
-  // -----------------------------------------
-  // Volume
-  // -----------------------------------------
+  // --------------------------------------------------
+  // VOLUME
+  // --------------------------------------------------
 
   useEffect(() => {
     if (audioRef.current) {
@@ -279,9 +323,40 @@ export default function Home() {
     }
   }, [volume]);
 
-  // -----------------------------------------
-  // Keyboard Controls
-  // -----------------------------------------
+  // --------------------------------------------------
+  // SEEK
+  // --------------------------------------------------
+
+  const seek = (value: number) => {
+    const audio = audioRef.current;
+
+    if (!audio || !duration) return;
+
+    audio.currentTime =
+      (value / 100) * duration;
+
+    setCurrentTime(audio.currentTime);
+  };
+
+  // --------------------------------------------------
+  // FULLSCREEN
+  // --------------------------------------------------
+
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  // --------------------------------------------------
+  // KEYBOARD CONTROLS
+  // --------------------------------------------------
 
   useEffect(() => {
     const handleKeyboard = (
@@ -294,6 +369,7 @@ export default function Home() {
 
       if (event.code === "Space") {
         event.preventDefault();
+
         togglePlay();
       }
 
@@ -319,56 +395,36 @@ export default function Home() {
     };
   });
 
-  // -----------------------------------------
-  // Progress / Seek
-  // -----------------------------------------
+  // --------------------------------------------------
+  // CLOSE MOBILE PLAYLIST
+  // --------------------------------------------------
 
-  const seek = (value: number) => {
-    const audio = audioRef.current;
+  const selectMobileSong = (index: number) => {
+    playSong(index);
 
-    if (!audio || !duration) return;
-
-    audio.currentTime =
-      (value / 100) * duration;
-
-    setCurrentTime(audio.currentTime);
+    setMobilePlaylist(false);
   };
 
-  // -----------------------------------------
-  // Fullscreen
-  // -----------------------------------------
-
-  const toggleFullscreen = async () => {
-    try {
-      if (!document.fullscreenElement) {
-        await document.documentElement.requestFullscreen();
-      } else {
-        await document.exitFullscreen();
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  // -----------------------------------------
+  // --------------------------------------------------
   // UI
-  // -----------------------------------------
+  // --------------------------------------------------
 
   return (
-    <main className="app-shell">
+    <main className="music-page">
 
-      {/* Background */}
+      {/* BACKGROUND */}
 
       <div className="background-image" />
 
-      <div className="background-vignette" />
+      <div className="background-overlay" />
 
-      <div className="grain" />
+      <div className="background-glow glow-one" />
+      <div className="background-glow glow-two" />
 
 
-      {/* Header */}
+      {/* HEADER */}
 
-      <header className="topbar">
+      <header className="top-header">
 
         <div className="brand">
 
@@ -383,9 +439,9 @@ export default function Home() {
         </div>
 
 
-        <div className="online-pill">
+        <div className="header-center">
 
-          <span className="online-dot" />
+          <span className="status-dot" />
 
           Your music space
 
@@ -393,7 +449,7 @@ export default function Home() {
 
 
         <button
-          className="icon-button"
+          className="header-button"
           onClick={toggleFullscreen}
           aria-label="Fullscreen"
         >
@@ -403,20 +459,27 @@ export default function Home() {
       </header>
 
 
-      {/* Main */}
+      {/* MAIN CONTENT */}
 
-      <section className="main-grid">
+      <section
+        className={`main-content ${
+          showPlaylist
+            ? "playlist-visible"
+            : "playlist-hidden"
+        }`}
+      >
 
+        {/* HERO */}
 
-        {/* Hero */}
+        <div className="hero-section">
 
-        <div className="hero">
-
-          <div className="hero-kicker">
+          <div className="hero-label">
 
             <Headphones size={15} />
 
-            PUT YOUR HEADPHONES ON
+            <span>
+              PUT YOUR HEADPHONES ON
+            </span>
 
           </div>
 
@@ -434,167 +497,264 @@ export default function Home() {
           </h1>
 
 
-          <p>
+          <p className="hero-description">
+
             Relax, forget the noise and enjoy
             your favorite songs in your own
             little corner of the world.
+
           </p>
 
 
-          <div className="hero-hint">
+          {/* CURRENT SONG */}
 
-            <span>SPACE</span>
+          <div className="hero-current">
 
-            play / pause
+            <div className="mini-cover">
 
-            <span>← →</span>
+              <Music2 size={19} />
 
-            previous / next
+            </div>
+
+
+            <div className="hero-current-text">
+
+              <span>
+                NOW PLAYING
+              </span>
+
+              <strong>
+                {currentSong?.name ??
+                  "Choose a song"}
+              </strong>
+
+            </div>
 
           </div>
+
+
+          {/* MOBILE PLAYLIST BUTTON */}
+
+          <button
+            className="mobile-playlist-button"
+            onClick={() =>
+              setMobilePlaylist(true)
+            }
+          >
+
+            <ListMusic size={18} />
+
+            <span>
+              View playlist
+            </span>
+
+            <span className="mobile-song-count">
+              {songs.length}
+            </span>
+
+          </button>
 
         </div>
 
 
-        {/* Playlist */}
+        {/* DESKTOP PLAYLIST */}
 
-        <aside className="playlist-card glass">
+        {showPlaylist && (
 
-          <div className="playlist-header">
+          <aside className="playlist-panel glass-panel">
 
-            <div>
+            <div className="playlist-top">
 
-              <div className="eyebrow">
-                YOUR PLAYLIST
+              <div>
+
+                <div className="playlist-label">
+                  YOUR PLAYLIST
+                </div>
+
+                <h2>
+                  My Songs
+                </h2>
+
               </div>
 
-              <h2>
-                My Songs
-              </h2>
 
-            </div>
-
-
-            <div className="song-count">
-              {songs.length} songs
-            </div>
-
-          </div>
-
-
-          <div className="song-list">
-
-            {loading ? (
-
-              <div className="empty-state">
-                Loading your songs...
-              </div>
-
-            ) : songs.length === 0 ? (
-
-              <div className="empty-state">
-
-                <ListMusic size={30} />
-
-                <strong>
-                  No songs found
-                </strong>
+              <div className="playlist-actions">
 
                 <span>
-                  Check your R2 filenames
+                  {songs.length} songs
                 </span>
+
+                <button
+                  onClick={() =>
+                    setShowPlaylist(false)
+                  }
+                  className="small-icon"
+                  aria-label="Hide playlist"
+                  title="Hide playlist"
+                >
+                  <ChevronRight size={17} />
+                </button>
 
               </div>
 
-            ) : (
-
-              songs.map(
-                (song, index) => {
-
-                  const active =
-                    index === currentIndex;
+            </div>
 
 
-                  return (
+            <div className="song-list">
 
-                    <button
-                      key={song.file}
-                      className={`song-row ${
-                        active
-                          ? "active"
-                          : ""
-                      }`}
-                      onClick={() =>
-                        playSong(index)
-                      }
-                    >
+              {loading ? (
 
-                      <span className="song-number">
+                <div className="empty-playlist">
+                  Loading songs...
+                </div>
 
-                        {String(index + 1)
-                          .padStart(2, "0")}
+              ) : songs.length === 0 ? (
 
-                      </span>
+                <div className="empty-playlist">
 
+                  <ListMusic size={30} />
 
-                      <span className="song-art">
+                  <strong>
+                    No songs found
+                  </strong>
 
-                        {active &&
-                        isPlaying ? (
-                          <Volume2 size={16} />
-                        ) : (
-                          <Music2 size={16} />
-                        )}
+                  <span>
+                    Upload songs to your R2 bucket.
+                  </span>
 
-                      </span>
+                </div>
 
+              ) : (
 
-                      <span className="song-title">
+                songs.map(
+                  (song, index) => {
 
-                        {song.name}
-
-                      </span>
+                    const active =
+                      index === currentIndex;
 
 
-                      <span className="row-action">
+                    return (
 
-                        {active &&
-                        isPlaying ? (
-                          <Pause size={15} />
-                        ) : (
-                          <Play size={15} />
-                        )}
+                      <button
+                        key={song.file}
+                        className={`song-item ${
+                          active
+                            ? "song-active"
+                            : ""
+                        }`}
+                        onClick={() =>
+                          playSong(index)
+                        }
+                      >
 
-                      </span>
+                        <span className="song-index">
 
-                    </button>
+                          {String(index + 1)
+                            .padStart(2, "0")}
 
-                  );
-                }
-              )
+                        </span>
 
-            )}
 
-          </div>
+                        <span className="song-icon">
 
-        </aside>
+                          {active &&
+                          isPlaying ? (
+
+                            <Volume2
+                              size={15}
+                            />
+
+                          ) : (
+
+                            <Music2
+                              size={15}
+                            />
+
+                          )}
+
+                        </span>
+
+
+                        <span className="song-name">
+
+                          {song.name}
+
+                        </span>
+
+
+                        <span className="song-play">
+
+                          {active &&
+                          isPlaying ? (
+
+                            <Pause
+                              size={14}
+                            />
+
+                          ) : (
+
+                            <Play
+                              size={14}
+                            />
+
+                          )}
+
+                        </span>
+
+                      </button>
+
+                    );
+                  }
+                )
+
+              )}
+
+            </div>
+
+          </aside>
+
+        )}
+
+
+        {/* SHOW PLAYLIST BUTTON */}
+
+        {!showPlaylist && (
+
+          <button
+            className="show-playlist-button"
+            onClick={() =>
+              setShowPlaylist(true)
+            }
+          >
+
+            <ListMusic size={17} />
+
+            <span>
+              Playlist
+            </span>
+
+            <ChevronLeft size={15} />
+
+          </button>
+
+        )}
 
       </section>
 
 
-      {/* Player */}
+      {/* PLAYER */}
 
-      <section className="player glass">
+      <section className="bottom-player glass-panel">
 
 
-        {/* Current Song */}
+        {/* CURRENT SONG */}
 
-        <div className="now-playing">
+        <div className="player-song">
 
           <div
-            className={`cover ${
+            className={`player-cover ${
               isPlaying
-                ? "spinning"
+                ? "cover-playing"
                 : ""
             }`}
           >
@@ -604,9 +764,9 @@ export default function Home() {
           </div>
 
 
-          <div className="now-text">
+          <div className="player-song-info">
 
-            <span className="eyebrow">
+            <span>
               NOW PLAYING
             </span>
 
@@ -615,114 +775,116 @@ export default function Home() {
                 "Select a song"}
             </strong>
 
-            <small>
-              Streaming from Cloudflare R2
-            </small>
-
           </div>
 
         </div>
 
 
-        {/* Controls */}
+        {/* CONTROLS */}
 
-        <div className="player-center">
+        <div className="player-controls">
 
-          <div className="controls">
+          <div className="control-buttons">
 
 
-            {/* Shuffle */}
+            {/* SHUFFLE */}
 
             <button
-              className={`control ${
+              className={`control-button ${
                 isShuffle
-                  ? "selected"
+                  ? "control-active"
                   : ""
               }`}
               onClick={() =>
                 setIsShuffle(!isShuffle)
               }
+              title="Shuffle"
               aria-label="Shuffle"
             >
 
-              <Shuffle size={17} />
+              <Shuffle size={18} />
 
             </button>
 
 
-            {/* Previous */}
+            {/* PREVIOUS */}
 
             <button
-              className="control"
+              className="control-button"
               onClick={previousSong}
               aria-label="Previous"
             >
 
-              <SkipBack size={20} />
+              <SkipBack size={21} />
 
             </button>
 
 
-            {/* Play */}
+            {/* PLAY */}
 
             <button
-              className="play-main"
+              className="main-play-button"
               onClick={togglePlay}
               aria-label="Play or pause"
             >
 
               {isPlaying ? (
+
                 <Pause
-                  size={20}
+                  size={21}
                   fill="currentColor"
                 />
+
               ) : (
+
                 <Play
-                  size={20}
+                  size={21}
                   fill="currentColor"
                 />
+
               )}
 
             </button>
 
 
-            {/* Next */}
+            {/* NEXT */}
 
             <button
-              className="control"
+              className="control-button"
               onClick={nextSong}
               aria-label="Next"
             >
 
-              <SkipForward size={20} />
+              <SkipForward size={21} />
 
             </button>
 
 
-            {/* Repeat */}
+            {/* REPEAT */}
 
             <button
-              className={`control ${
+              className={`control-button ${
                 isRepeat
-                  ? "selected"
+                  ? "control-active"
                   : ""
               }`}
               onClick={() =>
                 setIsRepeat(!isRepeat)
               }
+              title="Repeat"
               aria-label="Repeat"
             >
 
-              <Repeat size={17} />
+              <Repeat size={18} />
 
             </button>
 
           </div>
 
 
-          {/* Progress */}
+          {/* PROGRESS */}
 
-          <div className="progress-line">
+          <div className="progress-container">
 
             <span>
               {formatTime(currentTime)}
@@ -760,12 +922,12 @@ export default function Home() {
         </div>
 
 
-        {/* Volume */}
+        {/* VOLUME */}
 
-        <div className="volume-control">
+        <div className="volume-section">
 
           <button
-            className="volume-icon"
+            className="volume-button"
             onClick={() =>
               setVolume(
                 volume > 0
@@ -806,7 +968,215 @@ export default function Home() {
       </section>
 
 
-      {/* Audio */}
+      {/* MOBILE MINI PLAYER */}
+
+      <button
+        className="mobile-mini-player"
+        onClick={() =>
+          setMobilePlaylist(true)
+        }
+      >
+
+        <div className="mini-player-cover">
+
+          <Music2 size={17} />
+
+        </div>
+
+
+        <div className="mini-player-info">
+
+          <span>
+            {currentSong?.name ??
+              "Select a song"}
+          </span>
+
+          <small>
+            {isPlaying
+              ? "Playing"
+              : "Paused"}
+          </small>
+
+        </div>
+
+
+        <button
+          className="mini-play"
+          onClick={(event) => {
+            event.stopPropagation();
+            togglePlay();
+          }}
+          aria-label="Play or pause"
+        >
+
+          {isPlaying ? (
+            <Pause
+              size={17}
+              fill="currentColor"
+            />
+          ) : (
+            <Play
+              size={17}
+              fill="currentColor"
+            />
+          )}
+
+        </button>
+
+
+        <button
+          className="mini-next"
+          onClick={(event) => {
+            event.stopPropagation();
+            nextSong();
+          }}
+          aria-label="Next"
+        >
+
+          <SkipForward size={17} />
+
+        </button>
+
+      </button>
+
+
+      {/* MOBILE PLAYLIST SHEET */}
+
+      {mobilePlaylist && (
+
+        <div
+          className="mobile-playlist-overlay"
+          onClick={() =>
+            setMobilePlaylist(false)
+          }
+        >
+
+          <div
+            className="mobile-playlist-sheet"
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+          >
+
+            <div className="sheet-handle" />
+
+
+            <div className="sheet-header">
+
+              <div>
+
+                <span>
+                  YOUR PLAYLIST
+                </span>
+
+                <h2>
+                  My Songs
+                </h2>
+
+              </div>
+
+
+              <button
+                className="sheet-close"
+                onClick={() =>
+                  setMobilePlaylist(false)
+                }
+                aria-label="Close playlist"
+              >
+
+                <X size={20} />
+
+              </button>
+
+            </div>
+
+
+            <div className="mobile-song-list">
+
+              {songs.map(
+                (song, index) => {
+
+                  const active =
+                    index === currentIndex;
+
+
+                  return (
+
+                    <button
+                      key={song.file}
+                      className={`mobile-song-item ${
+                        active
+                          ? "mobile-song-active"
+                          : ""
+                      }`}
+                      onClick={() =>
+                        selectMobileSong(index)
+                      }
+                    >
+
+                      <span className="mobile-song-number">
+
+                        {String(index + 1)
+                          .padStart(2, "0")}
+
+                      </span>
+
+
+                      <span className="mobile-song-art">
+
+                        {active &&
+                        isPlaying ? (
+                          <Volume2
+                            size={15}
+                          />
+                        ) : (
+                          <Music2
+                            size={15}
+                          />
+                        )}
+
+                      </span>
+
+
+                      <span className="mobile-song-name">
+
+                        {song.name}
+
+                      </span>
+
+
+                      {active && (
+                        <span>
+
+                          {isPlaying ? (
+                            <Pause
+                              size={15}
+                            />
+                          ) : (
+                            <Play
+                              size={15}
+                            />
+                          )}
+
+                        </span>
+                      )}
+
+                    </button>
+
+                  );
+                }
+              )}
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
+
+
+      {/* AUDIO */}
 
       <audio
         ref={audioRef}
