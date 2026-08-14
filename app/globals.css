@@ -53,22 +53,25 @@ button {
 
 .background-image {
   position: fixed;
+
   inset: 0;
 
   z-index: -5;
-
-  background-image:
-    url("/background.png");
 
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
 
   transform: scale(1.03);
+
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s ease;
 }
 
 .background-overlay {
   position: fixed;
+
   inset: 0;
 
   z-index: -4;
@@ -115,6 +118,188 @@ button {
   bottom: -200px;
 
   background: rgba(255, 120, 60, 0.5);
+}
+
+
+/* =====================================================
+   THEME NAVIGATION
+===================================================== */
+
+.theme-arrow {
+  position: fixed;
+
+  top: 50%;
+
+  width: 54px;
+  height: 54px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  transform: translateY(-50%);
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.22);
+
+  border-radius: 50%;
+
+  background:
+    rgba(0, 0, 0, 0.25);
+
+  backdrop-filter:
+    blur(14px);
+
+  -webkit-backdrop-filter:
+    blur(14px);
+
+  color: white;
+
+  cursor: pointer;
+
+  z-index: 60;
+
+  transition:
+    transform 0.25s ease,
+    background 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.theme-arrow:hover {
+  transform:
+    translateY(-50%)
+    scale(1.08);
+
+  background:
+    rgba(255, 255, 255, 0.13);
+
+  border-color:
+    rgba(255, 255, 255, 0.45);
+
+  box-shadow:
+    0 8px 30px
+    rgba(0, 0, 0, 0.25);
+}
+
+.theme-arrow:active {
+  transform:
+    translateY(-50%)
+    scale(0.94);
+}
+
+.theme-arrow-left {
+  left: 20px;
+}
+
+.theme-arrow-right {
+  right: 20px;
+}
+
+
+/* =====================================================
+   THEME NAME
+===================================================== */
+
+.theme-name {
+  display: inline-flex;
+
+  align-items: center;
+
+  width: fit-content;
+
+  margin-bottom: 10px;
+
+  padding:
+    7px 14px;
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.17);
+
+  border-radius: 999px;
+
+  background:
+    rgba(255, 255, 255, 0.09);
+
+  backdrop-filter:
+    blur(12px);
+
+  -webkit-backdrop-filter:
+    blur(12px);
+
+  color:
+    rgba(255, 255, 255, 0.85);
+
+  font-size: 10px;
+
+  font-weight: 600;
+
+  letter-spacing: 2px;
+
+  text-transform: uppercase;
+
+  box-shadow:
+    0 8px 25px
+    rgba(0, 0, 0, 0.12);
+}
+
+
+/* =====================================================
+   THEME DOTS
+===================================================== */
+
+.theme-dots {
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  margin-bottom: 16px;
+}
+
+.theme-dot {
+  width: 7px;
+  height: 7px;
+
+  padding: 0;
+
+  border: none;
+
+  border-radius: 50%;
+
+  background:
+    rgba(255, 255, 255, 0.35);
+
+  cursor: pointer;
+
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.theme-dot:hover {
+  background:
+    rgba(255, 255, 255, 0.75);
+
+  transform: scale(1.2);
+}
+
+.theme-dot.active {
+  width: 8px;
+  height: 8px;
+
+  transform: scale(1.25);
+
+  background: white;
+
+  box-shadow:
+    0 0 10px
+    rgba(255, 255, 255, 0.55);
 }
 
 
@@ -365,7 +550,9 @@ button {
 }
 
 
-/* Current song */
+/* =====================================================
+   CURRENT SONG
+===================================================== */
 
 .hero-current {
   display: flex;
@@ -516,7 +703,9 @@ button {
 }
 
 
-/* Song list */
+/* =====================================================
+   SONG LIST
+===================================================== */
 
 .song-list {
   overflow-y: auto;
@@ -668,7 +857,9 @@ button {
 }
 
 
-/* Show playlist */
+/* =====================================================
+   SHOW PLAYLIST
+===================================================== */
 
 .show-playlist-button {
   position: absolute;
@@ -731,7 +922,9 @@ button {
 }
 
 
-/* Player song */
+/* =====================================================
+   PLAYER SONG
+===================================================== */
 
 .player-song {
   display: flex;
@@ -815,7 +1008,9 @@ button {
 }
 
 
-/* Controls */
+/* =====================================================
+   CONTROLS
+===================================================== */
 
 .player-controls {
   min-width: 0;
@@ -896,7 +1091,9 @@ button {
 }
 
 
-/* Progress */
+/* =====================================================
+   PROGRESS
+===================================================== */
 
 .progress-container {
   display: flex;
@@ -967,7 +1164,9 @@ input[type="range"]::-moz-range-thumb {
 }
 
 
-/* Volume */
+/* =====================================================
+   VOLUME
+===================================================== */
 
 .volume-section {
   display: flex;
@@ -1045,6 +1244,14 @@ input[type="range"]::-moz-range-thumb {
     gap: 15px;
   }
 
+  .theme-arrow-left {
+    left: 10px;
+  }
+
+  .theme-arrow-right {
+    right: 10px;
+  }
+
 }
 
 
@@ -1066,7 +1273,37 @@ input[type="range"]::-moz-range-thumb {
   }
 
 
-  /* Header */
+  /* -----------------------------------------------
+     THEME ARROWS
+  ----------------------------------------------- */
+
+  .theme-arrow {
+    width: 42px;
+    height: 42px;
+
+    top: 42%;
+
+    background:
+      rgba(0, 0, 0, 0.28);
+  }
+
+  .theme-arrow-left {
+    left: 8px;
+  }
+
+  .theme-arrow-right {
+    right: 8px;
+  }
+
+  .theme-arrow svg {
+    width: 22px;
+    height: 22px;
+  }
+
+
+  /* -----------------------------------------------
+     HEADER
+  ----------------------------------------------- */
 
   .top-header {
     height: 48px;
@@ -1091,7 +1328,9 @@ input[type="range"]::-moz-range-thumb {
   }
 
 
-  /* Main */
+  /* -----------------------------------------------
+     MAIN
+  ----------------------------------------------- */
 
   .main-content,
   .main-content.playlist-visible,
@@ -1104,7 +1343,9 @@ input[type="range"]::-moz-range-thumb {
   }
 
 
-  /* Hero */
+  /* -----------------------------------------------
+     HERO
+  ----------------------------------------------- */
 
   .hero-section {
     padding: 0;
@@ -1123,6 +1364,30 @@ input[type="range"]::-moz-range-thumb {
 
     padding-bottom: 45px;
   }
+
+
+  /* Theme name */
+
+  .theme-name {
+    margin-bottom: 9px;
+
+    padding:
+      6px 12px;
+
+    font-size: 9px;
+
+    letter-spacing: 1.7px;
+  }
+
+
+  /* Theme dots */
+
+  .theme-dots {
+    margin-bottom: 15px;
+
+    gap: 7px;
+  }
+
 
   .hero-label {
     justify-content: center;
@@ -1154,7 +1419,9 @@ input[type="range"]::-moz-range-thumb {
   }
 
 
-  /* Current song */
+  /* -----------------------------------------------
+     CURRENT SONG
+  ----------------------------------------------- */
 
   .hero-current {
     margin-top: 24px;
@@ -1167,7 +1434,9 @@ input[type="range"]::-moz-range-thumb {
   }
 
 
-  /* Mobile playlist button */
+  /* -----------------------------------------------
+     MOBILE PLAYLIST BUTTON
+  ----------------------------------------------- */
 
   .mobile-playlist-button {
     display: flex;
@@ -1212,7 +1481,9 @@ input[type="range"]::-moz-range-thumb {
   }
 
 
-  /* Hide desktop playlist */
+  /* -----------------------------------------------
+     HIDE DESKTOP PLAYLIST
+  ----------------------------------------------- */
 
   .playlist-panel,
   .show-playlist-button {
@@ -1220,7 +1491,9 @@ input[type="range"]::-moz-range-thumb {
   }
 
 
-  /* Bottom player */
+  /* -----------------------------------------------
+     BOTTOM PLAYER
+  ----------------------------------------------- */
 
   .bottom-player {
     position: fixed;
@@ -1276,7 +1549,9 @@ input[type="range"]::-moz-range-thumb {
   }
 
 
-  /* Progress */
+  /* -----------------------------------------------
+     PROGRESS
+  ----------------------------------------------- */
 
   .progress-container {
     margin-top: -1px;
@@ -1289,21 +1564,27 @@ input[type="range"]::-moz-range-thumb {
   }
 
 
-  /* Hide desktop volume */
+  /* -----------------------------------------------
+     HIDE DESKTOP VOLUME
+  ----------------------------------------------- */
 
   .volume-section {
     display: none;
   }
 
 
-  /* Mobile mini player */
+  /* -----------------------------------------------
+     MOBILE MINI PLAYER
+  ----------------------------------------------- */
 
   .mobile-mini-player {
     display: none;
   }
 
 
-  /* Mobile playlist */
+  /* -----------------------------------------------
+     MOBILE PLAYLIST
+  ----------------------------------------------- */
 
   .mobile-playlist-overlay {
     position: fixed;
@@ -1566,6 +1847,24 @@ input[type="range"]::-moz-range-thumb {
 
   .control-buttons {
     gap: 12px;
+  }
+
+  .theme-arrow {
+    width: 38px;
+    height: 38px;
+  }
+
+  .theme-arrow-left {
+    left: 5px;
+  }
+
+  .theme-arrow-right {
+    right: 5px;
+  }
+
+  .theme-arrow svg {
+    width: 19px;
+    height: 19px;
   }
 
 }
