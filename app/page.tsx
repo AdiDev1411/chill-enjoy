@@ -166,6 +166,67 @@ export default function Home() {
   }, [changeTheme]);
 
   // --------------------------------------------------
+// MOBILE SWIPE THEME NAVIGATION
+// --------------------------------------------------
+
+const touchStartX = useRef<number | null>(null);
+const touchStartY = useRef<number | null>(null);
+
+const handleTouchStart = (
+  event: React.TouchEvent<HTMLElement>
+) => {
+  const touch = event.touches[0];
+
+  touchStartX.current = touch.clientX;
+  touchStartY.current = touch.clientY;
+};
+
+const handleTouchEnd = (
+  event: React.TouchEvent<HTMLElement>
+) => {
+  if (
+    touchStartX.current === null ||
+    touchStartY.current === null
+  ) {
+    return;
+  }
+
+  const touch = event.changedTouches[0];
+
+  const deltaX =
+    touch.clientX - touchStartX.current;
+
+  const deltaY =
+    touch.clientY - touchStartY.current;
+
+  // Reset
+  touchStartX.current = null;
+  touchStartY.current = null;
+
+  // Ignore mostly vertical swipes
+  if (Math.abs(deltaX) < Math.abs(deltaY)) {
+    return;
+  }
+
+  // Minimum swipe distance
+  const SWIPE_THRESHOLD = 60;
+
+  if (Math.abs(deltaX) < SWIPE_THRESHOLD) {
+    return;
+  }
+
+  // Swipe LEFT → NEXT THEME
+  if (deltaX < 0) {
+    nextTheme();
+  }
+
+  // Swipe RIGHT → PREVIOUS THEME
+  if (deltaX > 0) {
+    previousTheme();
+  }
+};
+
+  // --------------------------------------------------
   // UPDATE SONGS WHEN THEME CHANGES
   // --------------------------------------------------
 
@@ -454,7 +515,7 @@ export default function Home() {
   // --------------------------------------------------
 
   return (
-    <main className="music-page">
+    <main className="music-page" >
       {/* -------------------------------------------
           BACKGROUND
       ------------------------------------------- */}
@@ -540,7 +601,9 @@ export default function Home() {
             HERO
         ----------------------------------------- */}
 
-        <div className="hero-section">
+        <div className="hero-section"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}>
           {/* THEME NAME */}
 
           {currentTheme && (
